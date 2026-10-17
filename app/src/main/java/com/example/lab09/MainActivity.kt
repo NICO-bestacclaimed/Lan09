@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Favorite
 import androidx.compose.material.icons.outlined.Home
+import androidx.compose.material.icons.outlined.RestaurantMenu
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -21,9 +22,11 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -54,12 +57,26 @@ fun ProgPrincipal9() {
         .addConverterFactory(GsonConverterFactory.create())
         .build()
     val servicio = retrofit.create(PostApiService::class.java)
+
+    val recipeRetrofit = Retrofit.Builder()
+        .baseUrl("https://dummyjson.com/")
+        .addConverterFactory(GsonConverterFactory.create())
+        .build()
+    val recipeServicio = recipeRetrofit.create(RecipeApiService::class.java)
+
     val navController = rememberNavController()
 
     Scaffold(
         topBar = { BarraSuperior() },
         bottomBar = { BarraInferior(navController) },
-        content = { paddingValues -> Contenido(paddingValues, navController, servicio) }
+        content = { paddingValues ->
+            Contenido(
+                paddingValues,
+                navController,
+                servicio,
+                recipeServicio
+            )
+        }
     )
 }
 
@@ -69,7 +86,7 @@ fun BarraSuperior() {
     CenterAlignedTopAppBar(
         title = {
             Text(
-                text = "JSONPlaceHolder Access",
+                text = "Consumo de API con Retrofit",
                 color = Color.White,
                 fontWeight = FontWeight.Bold
             )
@@ -97,6 +114,12 @@ fun BarraInferior(navController: NavHostController) {
             selected = navController.currentDestination?.route == "posts",
             onClick = { navController.navigate("posts") }
         )
+        NavigationBarItem(
+            icon = { Icon(Icons.Outlined.RestaurantMenu, contentDescription = "Recetas") },
+            label = { Text("Recetas") },
+            selected = navController.currentDestination?.route?.startsWith("recetas") == true,
+            onClick = { navController.navigate("recetas") }
+        )
     }
 }
 
@@ -104,7 +127,8 @@ fun BarraInferior(navController: NavHostController) {
 fun Contenido(
     pv: PaddingValues,
     navController: NavHostController,
-    servicio: PostApiService
+    servicio: PostApiService,
+    recipeServicio: RecipeApiService
 ) {
     Box(
         modifier = Modifier
@@ -124,11 +148,28 @@ fun Contenido(
                 val id = backStackEntry.arguments?.getInt("id") ?: 0
                 ScreenPost(navController, servicio, id)
             }
+            composable("recetas") { ScreenRecetas(navController, recipeServicio) }
+            composable(
+                "recetasVer/{id}",
+                arguments = listOf(navArgument("id") { type = NavType.IntType })
+            ) { backStackEntry ->
+                val id = backStackEntry.arguments?.getInt("id") ?: 0
+                ScreenRecetaDetalle(navController, recipeServicio, id)
+            }
         }
     }
 }
 
 @Composable
 fun ScreenInicio() {
-    Text("INICIO")
+    Box(
+        modifier = Modifier.fillMaxSize(),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = "Bienvenido a Laboratorio 09 🚀\nUsa las pestañas para navegar entre Posts y Recetas.",
+            style = MaterialTheme.typography.titleMedium,
+            textAlign = TextAlign.Center
+        )
+    }
 }
